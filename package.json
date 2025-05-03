@@ -1,9 +1,9 @@
 {
   "name": "n8n-nodes-crypto-js",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Use crypto.js in n8n",
   "keywords": [
-    "n8n-community-node-package"
+    "n8n-community-node-package", "base64", "node-rsa", "crypto-js"
   ],
   "license": "MIT",
   "homepage": "",
@@ -39,7 +39,8 @@
       "dist/credentials/CryptoJsCredentialsApi.credentials.js"
     ],
     "nodes": [
-      "dist/nodes/CryptoJs/CryptoJs.node.js"
+      "dist/nodes/CryptoJs/CryptoJs.node.js",
+      "dist/nodes/Base64/Base64.node.js"
     ]
   },
   "devDependencies": {

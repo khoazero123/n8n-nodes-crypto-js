@@ -1,7 +1,6 @@
 /* eslint-disable n8n-nodes-base/node-param-options-type-unsorted-items */
 
 import {AES, enc} from 'crypto-js';
-// import NodeRSA from 'node-rsa';
 import set from 'lodash/set';
 import type {
 	IExecuteFunctions,
@@ -86,6 +85,12 @@ export class CryptoJs implements INodeType {
 						description: 'Sign a string using a private key',
 						value: 'sign',
 						action: 'Sign a string using a private key',
+					},
+					{
+						name: 'Base64 Decode',
+						description: 'Base64 decode a string',
+						value: 'base64Decode',
+						action: 'Base64 decode a string',
 					},
 
 				],
@@ -259,6 +264,10 @@ export class CryptoJs implements INodeType {
 					} else if (outputType === DecryptOutputType.Json) {
 						newValue = JSON.parse(decryptedString);
 					}
+				}
+
+				if (action === 'base64Decode') {
+					newValue = Buffer.from(inputValue, 'base64').toString();
 				}
 
 				let newItem: INodeExecutionData;
