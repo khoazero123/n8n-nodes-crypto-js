@@ -136,10 +136,6 @@ export class CryptoJs implements INodeType {
 				displayName: 'Input Value',
 				name: 'inputValue',
 				type: 'string',
-				typeOptions: {
-					editor: 'htmlEditor',
-					rows: 10,
-				},
 				default: '',
 				description: 'The value that should be encrypted',
 				required: true,
