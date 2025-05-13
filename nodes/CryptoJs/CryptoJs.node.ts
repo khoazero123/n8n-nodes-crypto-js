@@ -1,5 +1,5 @@
 /* eslint-disable n8n-nodes-base/node-param-options-type-unsorted-items */
-
+const crypto = require('node:crypto');
 import {AES, enc} from 'crypto-js';
 import set from 'lodash/set';
 import type {
@@ -11,13 +11,6 @@ import type {
 } from 'n8n-workflow';
 import { deepCopy, NodeOperationError } from 'n8n-workflow';
 import NodeRSA from 'node-rsa';
-
-
-enum InputValueType {
-	String = 'string',
-	Json = 'json',
-	Binary = 'binary',
-}
 
 enum EncryptOutputType {
 	Base64 = 'base64',
@@ -99,32 +92,64 @@ export class CryptoJs implements INodeType {
 						value: 'base64Decode',
 						action: 'Base64 decode a string',
 					},
+					{
+						name: 'Verify',
+						description: 'Verify data using a key and a signature',
+						value: 'verify',
+						action: 'Verify data using a key and a signature',
+					},
 
 				],
 				default: 'decrypt',
 			},
 			{
-				displayName: 'Input Type',
-				name: 'inputType',
+				displayName: 'Key Type',
+				name: 'keyType',
 				type: 'options',
 				options: [
 					{
-						name: 'String',
-						value: 'string',
-						action: 'String',
+						name: 'Private',
+						value: 'private',
+						action: 'Private',
 					},
 					{
-						name: 'Json',
-						value: 'json',
-						action: 'Json',
+						name: 'Certificate',
+						value: 'certificate',
+						action: 'Certificate',
 					},
 				],
 				displayOptions: {
 					show: {
-						action: ['encrypt', 'encryptPrivate', 'sign'],
+						action: ['verify'],
 					},
 				},
-				default: 'string',
+				default: 'private',
+			},
+			{
+				displayName: 'Certificate',
+				name: 'certificate',
+				type: 'string',
+				default: '',
+				description: 'The certificate that should be used to verify the input value',
+				required: true,
+				displayOptions: {
+					show: {
+						keyType: ['certificate'],
+					},
+				},
+			},
+			{
+				displayName: 'Signature',
+				name: 'signature',
+				type: 'string',
+				default: '',
+				description: 'The signature that should be used to verify the input value',
+				required: true,
+				displayOptions: {
+					show: {
+						action: ['verify'],
+					},
+				},
 			},
 			{
 				displayName: 'Custom Passphrase',
@@ -234,17 +259,15 @@ export class CryptoJs implements INodeType {
 					if (!passphrase) {
 						throw new NodeOperationError(this.getNode(), 'Passphrase is required');
 					}
-					const inputType = this.getNodeParameter('inputType', i) as InputValueType;
-					const stringToEncrypt = inputType === InputValueType.String ? inputValue : JSON.stringify(inputValue);
+					const stringToEncrypt = typeof inputValue === 'object' ? JSON.stringify(inputValue) : inputValue;
 					const encryptedData = AES.encrypt(stringToEncrypt, passphrase as string);
 					newValue = encryptedData.toString();
 				}
 
 				if (action === 'encryptPrivate') {
 					const encryptOutputType = this.getNodeParameter('encryptOutputType', i) as EncryptOutputType;
-					const inputType = this.getNodeParameter('inputType', i) as InputValueType;
 					const key = new NodeRSA(privateKey as string);
-					const stringToEncrypt = inputType === InputValueType.String ? inputValue : JSON.stringify(inputValue);
+					const stringToEncrypt = typeof inputValue === 'object' ? JSON.stringify(inputValue) : inputValue;
 					const encryptedSymmetricKey = key.encryptPrivate(stringToEncrypt, encryptOutputType);
 
 					newValue = encryptedSymmetricKey;
@@ -255,9 +278,8 @@ export class CryptoJs implements INodeType {
 						throw new NodeOperationError(this.getNode(), 'Private key is required');
 					}
 					const encryptOutputType = this.getNodeParameter('encryptOutputType', i) as EncryptOutputType;
-					const inputType = this.getNodeParameter('inputType', i) as InputValueType;
 					const key = new NodeRSA(privateKey as string);
-					const stringToEncrypt = inputType === InputValueType.String ? inputValue : JSON.stringify(inputValue);
+					const stringToEncrypt = typeof inputValue === 'object' ? JSON.stringify(inputValue) : inputValue;
 					const signedData = key.sign(stringToEncrypt, encryptOutputType);
 					newValue = signedData;
 				}
@@ -305,6 +327,27 @@ export class CryptoJs implements INodeType {
 					const key = new NodeRSA(privateKey as string);
 					const encryptedSymmetricKey = key.encryptPrivate(passphrase as string, 'base64');
 					newValue = encryptedSymmetricKey;
+				}
+
+				if (action === 'verify') {
+					if (!privateKey) {
+						throw new NodeOperationError(this.getNode(), 'Public key is required');
+					}
+					const keyType = this.getNodeParameter('keyType', i) as string;
+					let key = new NodeRSA(privateKey as string);
+					if (keyType === 'certificate') {
+						const certificate = this.getNodeParameter('certificate', i) as string;
+						const x509Cert = new crypto.X509Certificate(certificate);
+						let keyData = x509Cert.publicKey.export({
+							format: "pem",
+							type: "pkcs1"
+						});
+						key = new NodeRSA(keyData);
+					}
+					const signature = this.getNodeParameter('signature', i) as string;
+
+					const verified = key.verify(Buffer.from(inputValue), signature, "utf8", "base64");
+					newValue = verified;
 				}
 
 				let newItem: INodeExecutionData;
