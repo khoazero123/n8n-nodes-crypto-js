@@ -199,7 +199,7 @@ export class CryptoJs implements INodeType {
 		const returnData: INodeExecutionData[] = [];
 		const length = items.length;
 		const action = this.getNodeParameter('action', 0) as string;
-		const customPassphrase = this.getNodeParameter('customPassphrase', 0) as string;
+		const customPassphrase = this.getNodeParameter('customPassphrase', 0, '') as string;
 
 		const {passphrase: defaultPassphrase, privateKey} = await this.getCredentials('cryptoJsCredentialsApi');
 		const passphrase = customPassphrase || defaultPassphrase;
