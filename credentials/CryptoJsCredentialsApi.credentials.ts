@@ -9,9 +9,6 @@ export class CryptoJsCredentialsApi implements ICredentialType {
 	name = 'cryptoJsCredentialsApi';
 	displayName = 'Crypto Js Credentials API';
 	properties: INodeProperties[] = [
-		// The credentials to get from user and save encrypted.
-		// Properties can be defined exactly in the same way
-		// as node properties.
 		{
 			displayName: 'Private Key',
 			name: 'privateKey',
@@ -23,7 +20,7 @@ export class CryptoJsCredentialsApi implements ICredentialType {
 			default: '',
 		},
 		{
-			displayName: 'Passphrase',
+			displayName: 'Default Encryption/Decryption Key',
 			name: 'passphrase',
 			type: 'string',
 			typeOptions: {

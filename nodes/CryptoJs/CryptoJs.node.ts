@@ -21,6 +21,7 @@ enum InputValueType {
 
 enum EncryptOutputType {
 	Base64 = 'base64',
+	Hex = 'hex',
 }
 
 enum DecryptOutputType {
@@ -69,6 +70,18 @@ export class CryptoJs implements INodeType {
 						action: 'Encrypt a string using a private key',
 					},
 					{
+						name: 'Sign',
+						description: 'Sign a string using a private key',
+						value: 'sign',
+						action: 'Sign a string using a private key',
+					},
+					{
+						name: 'Encrypted Symmetric Key',
+						description: 'Create an encrypted symmetric key using a private key',
+						value: 'encryptedSymmetricKey',
+						action: 'Create an encrypted symmetric key using a private key',
+					},
+					{
 						name: 'Decrypt',
 						description: 'Decrypt a string using a private key',
 						value: 'decrypt',
@@ -79,12 +92,6 @@ export class CryptoJs implements INodeType {
 						description: 'Decrypt a string using a public key',
 						value: 'decryptPublic',
 						action: 'Decrypt a string using a public key',
-					},
-					{
-						name: 'Sign',
-						description: 'Sign a string using a private key',
-						value: 'sign',
-						action: 'Sign a string using a private key',
 					},
 					{
 						name: 'Base64 Decode',
@@ -139,6 +146,11 @@ export class CryptoJs implements INodeType {
 				default: '',
 				description: 'The value that should be encrypted',
 				required: true,
+				displayOptions: {
+					hide: {
+						action: ['encryptedSymmetricKey'],
+					},
+				},
 			},
 			{
 				displayName: 'Encrypt Output Type',
@@ -150,10 +162,15 @@ export class CryptoJs implements INodeType {
 						value: 'base64',
 						action: 'Base64',
 					},
+					{
+						name: 'Hex',
+						value: 'hex',
+						action: 'Hex',
+					},
 				],
 				displayOptions: {
 					show: {
-						action: ['encrypt', 'encryptPrivate'],
+						action: ['sign', 'encryptPrivate'],
 					},
 				},
 				default: 'base64',
@@ -177,7 +194,7 @@ export class CryptoJs implements INodeType {
 				],
 				displayOptions: {
 					show: {
-						action: ['decrypt', 'decryptPublic', 'sign'],
+						action: ['decrypt', 'decryptPublic'],
 					},
 				},
 				default: 'string',
@@ -217,21 +234,18 @@ export class CryptoJs implements INodeType {
 					if (!passphrase) {
 						throw new NodeOperationError(this.getNode(), 'Passphrase is required');
 					}
-					const encryptOutputType = this.getNodeParameter('encryptOutputType', i) as EncryptOutputType;
 					const inputType = this.getNodeParameter('inputType', i) as InputValueType;
 					const stringToEncrypt = inputType === InputValueType.String ? inputValue : JSON.stringify(inputValue);
 					const encryptedData = AES.encrypt(stringToEncrypt, passphrase as string);
-					if (encryptOutputType === EncryptOutputType.Base64) {
-						newValue = encryptedData.toString();
-					}
+					newValue = encryptedData.toString();
 				}
 
 				if (action === 'encryptPrivate') {
-					// const encryptOutputType = this.getNodeParameter('encryptOutputType', i) as EncryptOutputType;
+					const encryptOutputType = this.getNodeParameter('encryptOutputType', i) as EncryptOutputType;
 					const inputType = this.getNodeParameter('inputType', i) as InputValueType;
 					const key = new NodeRSA(privateKey as string);
 					const stringToEncrypt = inputType === InputValueType.String ? inputValue : JSON.stringify(inputValue);
-					const encryptedSymmetricKey = key.encryptPrivate(stringToEncrypt, 'base64');
+					const encryptedSymmetricKey = key.encryptPrivate(stringToEncrypt, encryptOutputType);
 
 					newValue = encryptedSymmetricKey;
 				}
@@ -240,11 +254,11 @@ export class CryptoJs implements INodeType {
 					if (!privateKey) {
 						throw new NodeOperationError(this.getNode(), 'Private key is required');
 					}
-					// const encryptOutputType = this.getNodeParameter('encryptOutputType', i) as EncryptOutputType;
+					const encryptOutputType = this.getNodeParameter('encryptOutputType', i) as EncryptOutputType;
 					const inputType = this.getNodeParameter('inputType', i) as InputValueType;
 					const key = new NodeRSA(privateKey as string);
 					const stringToEncrypt = inputType === InputValueType.String ? inputValue : JSON.stringify(inputValue);
-					const signedData = key.sign(stringToEncrypt, 'base64');
+					const signedData = key.sign(stringToEncrypt, encryptOutputType);
 					newValue = signedData;
 				}
 
@@ -279,6 +293,18 @@ export class CryptoJs implements INodeType {
 
 				if (action === 'base64Decode') {
 					newValue = Buffer.from(inputValue, 'base64').toString();
+				}
+
+				if (action === 'encryptedSymmetricKey') {
+					if (!privateKey) {
+						throw new NodeOperationError(this.getNode(), 'Private key is required');
+					}
+					if (!passphrase) {
+						throw new NodeOperationError(this.getNode(), 'Passphrase is required');
+					}
+					const key = new NodeRSA(privateKey as string);
+					const encryptedSymmetricKey = key.encryptPrivate(passphrase as string, 'base64');
+					newValue = encryptedSymmetricKey;
 				}
 
 				let newItem: INodeExecutionData;
