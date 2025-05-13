@@ -120,6 +120,19 @@ export class CryptoJs implements INodeType {
 				default: 'string',
 			},
 			{
+				displayName: 'Custom Passphrase',
+				name: 'customPassphrase',
+				type: 'string',
+				default: '',
+				description: 'The passphrase that should be used to encrypt the input value',
+				hint: 'If not provided, the passphrase from the credentials will be used',
+				displayOptions: {
+					show: {
+						action: ['encrypt', 'decrypt'],
+					},
+				},
+			},
+			{
 				displayName: 'Input Value',
 				name: 'inputValue',
 				type: 'string',
@@ -190,8 +203,10 @@ export class CryptoJs implements INodeType {
 		const returnData: INodeExecutionData[] = [];
 		const length = items.length;
 		const action = this.getNodeParameter('action', 0) as string;
+		const customPassphrase = this.getNodeParameter('customPassphrase', 0) as string;
 
-		const {passphrase, privateKey} = await this.getCredentials('cryptoJsCredentialsApi');
+		const {passphrase: defaultPassphrase, privateKey} = await this.getCredentials('cryptoJsCredentialsApi');
+		const passphrase = customPassphrase || defaultPassphrase;
 
 		let item: INodeExecutionData;
 		for (let i = 0; i < length; i++) {
